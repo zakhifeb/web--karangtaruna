@@ -21,43 +21,37 @@ class AuthenticatedSessionController extends Controller
     /**
      * Proses login
      */
-    public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'nik' => ['required'],
-            'password' => ['required'],
-        ]);
+   public function store(Request $request): RedirectResponse
+{
+    $request->validate([
+        'nik' => ['required'],
+        'password' => ['required'],
+    ]);
 
-        if (Auth::attempt([
-            'email' => $request->nik,
-            'password' => $request->password
-        ])) {
+    if (Auth::attempt([
+        'email' => $request->nik,
+        'password' => $request->password
+    ])) {
 
-            $request->session()->regenerate();
+        $request->session()->regenerate();
 
-            // cek role user
-            if (Auth::user()->role == 'admin') {
-                return redirect('/dashboard');
-            }
+        if (Auth::user()->role === 'admin') {
+            return redirect('/dashboard');
+        }
 
+        if (Auth::user()->role === 'pemilih') {
             return redirect('/vote');
         }
 
+        Auth::logout();
+
         return back()->withErrors([
-            'nik' => 'NIK atau password salah'
+            'nik' => 'Role tidak dikenali'
         ]);
     }
 
-    /**
-     * Logout
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        Auth::logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/login');
-    }
+    return back()->withErrors([
+        'nik' => 'NIK atau password salah'
+    ]);
+}
 }
