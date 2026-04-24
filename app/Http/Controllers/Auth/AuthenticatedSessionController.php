@@ -21,37 +21,53 @@ class AuthenticatedSessionController extends Controller
     /**
      * Proses login
      */
-   public function store(Request $request): RedirectResponse
-{
-    $request->validate([
-        'nik' => ['required'],
-        'password' => ['required'],
-    ]);
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'nik' => ['required'],
+            'password' => ['required'],
+        ]);
 
-    if (Auth::attempt([
-        'email' => $request->nik,
-        'password' => $request->password
-    ])) {
+        if (Auth::attempt([
+            'email' => $request->nik,
+            'password' => $request->password
+        ])) {
 
-        $request->session()->regenerate();
+            $request->session()->regenerate();
 
-        if (Auth::user()->role === 'admin') {
-            return redirect('/dashboard');
+            // Admin ke dashboard
+            if (Auth::user()->role === 'admin') {
+                return redirect('/dashboard');
+            }
+
+            // User / Pemilih ke vote
+            if (
+                Auth::user()->role === 'user' ||
+                Auth::user()->role === 'pemilih'
+            ) {
+                return redirect('/vote');
+            }
+
+            // Jika role aneh
+            Auth::logout();
+
+            return back()->withErrors([
+                'nik' => 'Role tidak dikenali'
+            ]);
         }
-
-        if (Auth::user()->role === 'pemilih') {
-            return redirect('/vote');
-        }
-
-        Auth::logout();
 
         return back()->withErrors([
-            'nik' => 'Role tidak dikenali'
+            'nik' => 'NIK atau password salah'
         ]);
     }
 
-    return back()->withErrors([
-        'nik' => 'NIK atau password salah'
-    ]);
-}
+    /**
+     * Logout
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::logout();
+
+        return redirect('/login');
+    }
 }
